@@ -1,1 +1,1 @@
-646596231792.dkr.ecr.eu-north-1.amazonaws.com/medicalchatbot
+646596231792.dkr.ecr.us-east-1.amazonaws.com/medical-chatbot
