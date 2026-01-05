@@ -1,12 +1,11 @@
-name: Deploy Medical Chatbot to AWS ECR
+name: Deploy Medical Chatbot to AWS
 
 on:
   push:
     branches:
-    - main
+      - main
 
 jobs:
-
   build-and-push:
     runs-on: ubuntu-latest
 
@@ -30,8 +29,36 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          docker tag medical-chatbot:latest ${{ secrets.ECR_REPO }}:latest
+          docker tag medical-chatbot:latest ${{ secrets.ECR_URI }}:latest
 
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.ECR_REPO }}:latest
+          docker push ${{ secrets.ECR_URI }}:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: self-hosted
+
+    steps:
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region us-east-1 \
+          | docker login --username AWS --password-stdin 646596231792.dkr.ecr.us-east-1.amazonaws.com
+
+      - name: Pull latest image
+        run: |
+          docker pull ${{ secrets.ECR_URI }}:latest
+
+      - name: Stop old container
+        run: |
+          docker stop medical-chatbot || true
+          docker rm medical-chatbot || true
+
+      - name: Run new container
+        run: |
+          docker run -d \
+            --name medical-chatbot \
+            -p 8080:8080 \
+            -e PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }} \
+            -e GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} \
+            ${{ secrets.ECR_URI }}:latest
